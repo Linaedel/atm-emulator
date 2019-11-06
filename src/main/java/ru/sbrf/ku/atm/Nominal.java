@@ -19,10 +19,18 @@ public enum Nominal {
     }
 
     public static Nominal getNominalFromInt( Integer value ) {
-        if ( value == null ) return null;
-        for ( Nominal nominal : values() ) {
-            if ( nominal.nominal.equals( value ) ) return nominal;
+        if ( value == null ) {
+            throw new NumberFormatException("Seems banknote reciever is empty. Please, add a banknote.");
         }
-        return null;
+        Nominal currentNominal = null;
+        for ( Nominal nominal : values() ) {
+            if ( nominal.nominal.equals( value ) ) {
+                currentNominal =  nominal;
+            }
+        }
+        if ( currentNominal == null ) {
+            throw new NumberFormatException("Sorry, "+ value + " is not a valid banknote. Try another one.");
+        }
+        return currentNominal;
     }
 }

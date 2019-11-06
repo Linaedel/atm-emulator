@@ -1,5 +1,6 @@
 package ru.sbrf.ku.atm.atm.impl;
 
+import ru.sbrf.ku.atm.ATMRuntimeException;
 import ru.sbrf.ku.atm.atm.ATM;
 import ru.sbrf.ku.atm.atm.ATMService;
 import ru.sbrf.ku.atm.cell.Cell;
@@ -17,7 +18,7 @@ public class ATMImpl implements ATMService, ATM {
     public ATMImpl() {
         this.atmStorage = new HashMap<>();
         for ( Nominal nominal : Nominal.values() ) {
-            this.atmStorage.put( nominal, new CellImpl( nominal, 0 ) );
+            this.atmStorage.put( nominal, new CellImpl( nominal, 1 ) );
         }
     }
 
@@ -37,14 +38,15 @@ public class ATMImpl implements ATMService, ATM {
     @Override
     public List<Nominal> getCash( Integer sum ) {
         if ( sum % 100 != 0 ) {
-            throw new IllegalArgumentException( "Введена некорректная сумма. Минимальная купюра - 100р." );
+            throw new ATMRuntimeException( "Введена некорректная сумма. Минимальная купюра - 100р." );
         }
         if ( sum > this.getBalance() ) {
-            throw new IllegalArgumentException( "Запрашиваемая сумма превышает остаток денег в банкомате." );
+            throw new ATMRuntimeException( "Запрашиваемая сумма превышает остаток денег в банкомате." );
         }
         List<Nominal> outList = new ArrayList<>();
         List<Nominal> nominalList = new ArrayList<>( this.atmStorage.keySet() );
         nominalList.sort( Comparator.reverseOrder() );
+        Nominal leastNominal = nominalList.get(nominalList.size()-1);
 
         Map<Nominal, Integer> checkMap = new HashMap<>();
 
@@ -57,9 +59,17 @@ public class ATMImpl implements ATMService, ATM {
 
             if ( canGive < mustGive ) {
                 sum += ( mustGive - canGive ) * nominal.getNominal();
-                checkMap.put( nominal, canGive );
+                if (!nominal.equals(leastNominal)){
+                    checkMap.put( nominal, cell.get(canGive));
+                } else {
+                    if(canGive != 0) {
+                        throw new ATMRuntimeException("Невозможно выдать запрашиваемую сумму имеющимися купюрами, максимально возможная сумма: " + canGive);
+                    } else {
+                        throw new ATMRuntimeException("В банкомате недостаточно средств, чтобы выдать запрашиваемую сумму");
+                    }
+                }
             } else {
-                checkMap.put( nominal, mustGive );
+                checkMap.put( nominal, cell.get(mustGive ));
             }
         }
         if ( sum != 0 ) {
@@ -67,7 +77,7 @@ public class ATMImpl implements ATMService, ATM {
             for ( Nominal key : checkMap.keySet() ) {
                 iHave += key.getNominal() * checkMap.get( key );
             }
-            throw new IllegalArgumentException( "Невозможно выдать запрашиваемую сумму имеющимися купюрами, максимально возможная сумма: " + iHave );
+            throw new ATMRuntimeException( "Невозможно выдать запрашиваемую сумму имеющимися купюрами, максимально возможная сумма: " + iHave );
         } else {
             for ( Nominal key : checkMap.keySet() ) {
                 addBanknotes( checkMap.get( key ), key, outList );
