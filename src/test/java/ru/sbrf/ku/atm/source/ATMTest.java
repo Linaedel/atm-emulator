@@ -1,6 +1,9 @@
 package ru.sbrf.ku.atm.source;
 
 import org.junit.jupiter.api.Test;
+import ru.sbrf.ku.atm.atm.ATM;
+import ru.sbrf.ku.atm.atm.impl.ATMImpl;
+import ru.sbrf.ku.atm.Nominal;
 
 import java.util.ArrayList;
 import java.util.List;

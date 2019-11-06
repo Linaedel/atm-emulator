@@ -1,4 +1,6 @@
-package ru.sbrf.ku.atm.source;
+package ru.sbrf.ku.atm.cell;
+
+import ru.sbrf.ku.atm.Nominal;
 
 public interface Cell {
     void put(Integer count);
@@ -6,3 +8,4 @@ public interface Cell {
     Integer getCount();
     Nominal getNominal();
 }
+
