@@ -33,12 +33,12 @@ public class ViewModelImpl implements ViewModel {
     @Override
     public void startClientInteraction() {
         System.out.println("Hello, my dear friend. What's your name?");
-        String name = scanner.nextLine();
+        String name = readNotBlank(scanner);
         System.out.print("Hello " + name + "! ");
         String next = "";
         do  {
-            System.out.println("What's your "+next+" command? (add, get, exit)");
-            operation = scanner.nextLine();
+            System.out.println("What's your "+next+"command? (add, get, exit)");
+            operation = readNotBlank(scanner);
             switch (operation.toLowerCase()) {
                 case "add":
                     try {
@@ -53,9 +53,7 @@ public class ViewModelImpl implements ViewModel {
                 default:
                     System.out.println("Incorrect command");
             }
-
-            System.out.println(" What's your next command? (add, get, exit)");
-            operation = scanner.nextLine();
+            next = "next ";
         } while (!"exit".equalsIgnoreCase(operation));
         stopClientInteraction();
     }
@@ -64,7 +62,7 @@ public class ViewModelImpl implements ViewModel {
         String reply;
         do {
             System.out.println("Add all banknotes, separated with space, please. Type (return) to return to previous step.");
-            operation = scanner.nextLine();
+            operation = readNotBlank(scanner);
             if ("return".equalsIgnoreCase(operation)){
                 throw new ATMRuntimeException("Return");
             }
@@ -76,7 +74,7 @@ public class ViewModelImpl implements ViewModel {
                 reply = "Wish to try again? Type (yes) to repeat.";
             }
             System.out.println(reply);
-            operation = scanner.nextLine();
+            operation = returnIfNotGiven(scanner, "yes");
         } while ("yes".equalsIgnoreCase(operation));
     }
 
@@ -84,7 +82,7 @@ public class ViewModelImpl implements ViewModel {
         String reply = "";
         do {
             System.out.println("How much do you want to withdraw? Type (return) to return to previous step.");
-            operation = scanner.nextLine();
+            operation = readNotBlank(scanner);
             if ("return".equalsIgnoreCase(operation)){
                 throw new ATMRuntimeException("Return");
             }
@@ -102,6 +100,7 @@ public class ViewModelImpl implements ViewModel {
                     for (Nominal nominal : banknotesList) {
                         System.out.println("["+nominal.getNominal()+"]");
                     }
+                    throw new ATMRuntimeException("Return");
                 } catch (ATMRuntimeException e) {
                     if("Return".equalsIgnoreCase(e.getMessage())){
                         throw e;
@@ -112,7 +111,7 @@ public class ViewModelImpl implements ViewModel {
 
             }
             System.out.print(reply);
-            operation = scanner.nextLine();
+            operation = returnIfNotGiven(scanner,"yes");
         } while (!"".equals(reply) && "yes".equalsIgnoreCase(operation));
     }
 
@@ -154,6 +153,22 @@ public class ViewModelImpl implements ViewModel {
             System.err.println("There is no banknotes added to receiver. ");
         }
         return loadedBanknotesList;
+    }
+
+    private String readNotBlank(Scanner scanner) {
+        String buffer = "";
+        while ("".equals(buffer)){
+            buffer = scanner.nextLine();
+        }
+        return buffer;
+    }
+
+    private String returnIfNotGiven(Scanner scanner, String checkedStr){
+        String buffer = scanner.nextLine();
+        if (!checkedStr.equalsIgnoreCase(buffer)){
+            throw new ATMRuntimeException("Return");
+        }
+        return buffer;
     }
 
 }

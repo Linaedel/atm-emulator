@@ -18,7 +18,7 @@ public class Starter {
 
 
     private void startAtm() {
-        ATM atm = new ATMImpl();
+        ATM atm = ATMImpl.ATMImplBuilder.build();
         ViewModel atmViewModel = new ViewModelImpl(atm);
         atmViewModel.startClientInteraction();
     }
