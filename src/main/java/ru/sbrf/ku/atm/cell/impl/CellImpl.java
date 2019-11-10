@@ -57,7 +57,7 @@ public class CellImpl implements Cell, Comparable<Cell> {
         return id;
     }
 
-//    @Override
+    @Override
     public Integer getBalance() {
         return nominal.getNominal()*count;
     }

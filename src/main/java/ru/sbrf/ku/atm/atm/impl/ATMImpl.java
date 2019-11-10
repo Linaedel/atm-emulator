@@ -10,8 +10,10 @@ import ru.sbrf.ku.atm.cell.Cell;
 import ru.sbrf.ku.atm.cell.impl.CellImpl;
 
 import java.io.*;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 
 public class ATMImpl implements ATMService, ATM, Observer {
 //    private Map<Nominal, Cell> atmStorage;
@@ -86,7 +88,7 @@ public class ATMImpl implements ATMService, ATM, Observer {
                 minimalBelow += nominal.getNominal();
             }
             long minimalAbove = 0;
-            List<CellImpl> reverseList = safe.getCells();
+            List<Cell> reverseList = safe.getCells();
             reverseList.sort(Comparator.reverseOrder());
             for (Cell cell : reverseList) {
                 if (cell.getCount() != 0) {
@@ -130,17 +132,17 @@ public class ATMImpl implements ATMService, ATM, Observer {
 
     @Override
     public List<Cell> getCells() {
-        return null;
+        return safe.getCells();
     }
 
     @Override
     public Cell extractCell(String id) {
-        return null;
+        return safe.extractCell(id);
     }
 
     @Override
     public void insertCell(Cell cell) {
-
+        safe.insertCell(cell);
     }
 
 
@@ -186,9 +188,9 @@ public class ATMImpl implements ATMService, ATM, Observer {
 
     @Override
     public void updateBalance() {
-        List<CellImpl> cells = safe.getCells();
+        List<Cell> cells = safe.getCells();
         ATMbalance = 0L;
-        for (CellImpl cell : cells) {
+        for (Cell cell : cells) {
             ATMbalance += cell.getBalance();
         }
     }
@@ -213,7 +215,7 @@ public class ATMImpl implements ATMService, ATM, Observer {
     }
 
     private void setInitialCells() {
-        List<CellImpl> initialCellList = new ArrayList<>();
+        List<Cell> initialCellList = new ArrayList<>();
         for (Nominal nominal : Nominal.values()){
             initialCellList.add(new CellImpl(UUID.randomUUID().toString(),nominal,0,this));
         }
