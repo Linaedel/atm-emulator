@@ -219,6 +219,6 @@ public class ATMImpl implements ATMService, ATM {
     }
 
     private void sortCells() {
-        safe.getCells().sort(Comparator.naturalOrder());
+        safe.getCells().sort(Comparator.reverseOrder());
     }
 }

@@ -13,9 +13,9 @@ public class CellTest {
 
     @Test
     public void testPutCash(){
-        CellImpl cell = new CellImpl(UUID.randomUUID().toString(),Nominal.ONE_HUNDRED,10);
+        CellImpl cell = new CellImpl(UUID.randomUUID().toString(),Nominal.ONE_HUNDRED,5);
         cell.put(2);
-        assertEquals(cell.getCount(),12);
+        assertEquals(cell.getCount(),7);
     }
 
     @Test

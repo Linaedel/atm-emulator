@@ -22,7 +22,7 @@ public class ATMTest {
         nominals.add(Nominal.ONE_HUNDRED);
         nominals.add(Nominal.ONE_HUNDRED);
 
-        ATM atm = new ATMImpl();
+        ATMImpl atm = ATMImpl.ATMImplBuilder.build();
         atm.putCash(nominals);
 
         List<Nominal> gotList = atm.getCash(1000);
@@ -33,6 +33,7 @@ public class ATMTest {
         }
 
         assertEquals(1000,gotCash);
+        assertEquals(0, atm.getBalance());
 
 
     }
@@ -47,7 +48,7 @@ public class ATMTest {
         nominals.add(Nominal.ONE_HUNDRED);
         nominals.add(Nominal.ONE_HUNDRED);
 
-        ATM atm = new ATMImpl();
+        ATMImpl atm = ATMImpl.ATMImplBuilder.build();
         atm.putCash(nominals);
 
         List<Nominal> gotList = atm.getCash(900);
@@ -58,8 +59,7 @@ public class ATMTest {
         }
 
         assertEquals(900,gotCash);
-
-
+        assertEquals(100, atm.getBalance());
     }
 
     @Test
@@ -71,13 +71,10 @@ public class ATMTest {
         nominals.add(Nominal.ONE_HUNDRED);
         nominals.add(Nominal.ONE_HUNDRED);
 
-        ATM atm = new ATMImpl();
+        ATMImpl atm = ATMImpl.ATMImplBuilder.build();
         atm.putCash(nominals);
 
-        assertThrows(IllegalArgumentException.class, ()->{
-            atm.getCash(950);
-
-        });
+        assertThrows(IllegalArgumentException.class, ()-> atm.getCash(950));
     }
 
     @Test
@@ -89,12 +86,10 @@ public class ATMTest {
         nominals.add(Nominal.ONE_HUNDRED);
         nominals.add(Nominal.ONE_HUNDRED);
 
-        ATM atm = new ATMImpl();
+        ATMImpl atm = ATMImpl.ATMImplBuilder.build();
         atm.putCash(nominals);
 
-        assertThrows(IllegalArgumentException.class, ()->{
-            atm.getCash(1200);
-        });
+        assertThrows(IllegalArgumentException.class, ()-> atm.getCash(1200));
     }
 
 }
