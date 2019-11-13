@@ -1,13 +1,15 @@
 package ru.sbrf.ku.atm.atm.impl;
 
-import com.google.gson.Gson;
-import ru.sbrf.ku.atm.ATMRuntimeException;
+import flexjson.JSONDeserializer;
+import flexjson.JSONSerializer;
+import org.slf4j.Logger;
+import ru.sbrf.ku.atm.ATMLogger;
 import ru.sbrf.ku.atm.Nominal;
-import ru.sbrf.ku.atm.Observer;
 import ru.sbrf.ku.atm.atm.ATM;
 import ru.sbrf.ku.atm.atm.ATMService;
 import ru.sbrf.ku.atm.cell.Cell;
 import ru.sbrf.ku.atm.cell.impl.CellImpl;
+import ru.sbrf.ku.atm.exceptions.ATMRuntimeException;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -15,74 +17,66 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
-public class ATMImpl implements ATMService, ATM, Observer {
-//    private Map<Nominal, Cell> atmStorage;
+public class ATMImpl implements ATMService, ATM {
+    private Logger logger = ATMLogger.getLogger();
     private Safe safe = new Safe();
-    private BufferedReader bufferedReader;
+    private transient BufferedReader bufferedReader;
     private Long ATMbalance = 0L;
 
-
-
     public ATMImpl() {
-//        this.atmStorage = new HashMap<>();
-//        for ( Nominal nominal : Nominal.values() ) {
-//            this.atmStorage.put( nominal, new CellImpl(UUID.randomUUID().toString(), nominal, 1 , this) );
-//        }
     }
 
     @Override
-    public List<Nominal> putCash( List<Nominal> cashList ) {
+    public List<Nominal> putCash(List<Nominal> cashList) {
         List<Nominal> unacceptedBanknotes = new ArrayList<>();
-        for ( Nominal banknoteNominal : cashList ) {
+        for (Nominal banknoteNominal : cashList) {
             boolean accepted = false;
-            for ( Cell cell : safe.getCells() ) {
-                if ( cell.getNominal().equals( banknoteNominal ) ) {
+            for (Cell cell : safe.getCells()) {
+                if (cell.getNominal().equals(banknoteNominal)) {
                     try {
-                        cell.put( 1 );
+                        cell.put(1);
                         accepted = true;
                         break;
-                    } catch ( ATMRuntimeException e ) {
-                        // TODO Залоггировать
+                    } catch (ATMRuntimeException e) {
+                        logger.warn("[ATM] {}", e.getMessage());
                     }
                 }
             }
-            if ( ! accepted ) {
-                unacceptedBanknotes.add( banknoteNominal );
+            if (!accepted) {
+                unacceptedBanknotes.add(banknoteNominal);
             }
         }
         return unacceptedBanknotes;
     }
 
     @Override
-    public List<Nominal> getCash( Integer sum ) {
-        if ( sum % 100 != 0 ) {
-            throw new IllegalArgumentException( "Введена некорректная сумма. Минимальная купюра - 100р." );
+    public List<Nominal> getCash(Integer sum) {
+        if (sum % 100 != 0) {
+            throw new IllegalArgumentException("Amount is incorrect. Minimal nominal is 100 rubles.");
         }
-        if ( sum > this.getBalance() ) {
-            throw new IllegalArgumentException( "Запрашиваемая сумма превышает остаток денег в банкомате." );
+        if (sum > this.getBalance()) {
+            throw new IllegalArgumentException("Amount exceeds ATM balance.");
         }
         List<Nominal> outList = new ArrayList<>();
 
-        for ( Cell cell : safe.getCells() ) {
+        for (Cell cell : safe.getCells()) {
             Nominal nominal = cell.getNominal();
             Integer mustGive = sum / nominal.getNominal();
 
             Integer canGive = cell.getCount();
-            int processValue = Math.min( canGive, mustGive );
-            if ( processValue > 0 ) {
+            int processValue = Math.min(canGive, mustGive);
+            if (processValue > 0) {
 
                 sum -= processValue * nominal.getNominal();
-                cell.get( processValue ); //То ли я не понимаю, то ли тут должен быть processValue, а не canGive
-                for ( int i = 0; i < processValue; i++ ) {
-                    outList.add( nominal );
+                cell.get(processValue); //То ли я не понимаю, то ли тут должен быть processValue, а не canGive
+                for (int i = 0; i < processValue; i++) {
+                    outList.add(nominal);
                 }
             }
         }
-        if ( sum != 0 ) {
+        if (sum != 0) {
             StringBuilder sb = new StringBuilder("It`s not possible to give asked amount due to lack of banknotes in the ATM. ");
-            sb.append("Nearest possible amounts to give are ");
 
-//            outList = new ArrayList<>();
             long minimalBelow = 0;
             for (Nominal nominal : outList) {
                 minimalBelow += nominal.getNominal();
@@ -105,7 +99,7 @@ public class ATMImpl implements ATMService, ATM, Observer {
             } else {
                 sb.append("Neatest possible amounts are ").append(minimalBelow).append(" and ").append(minimalAbove);
             }
-            putCash( outList );
+            putCash(outList);
             throw new ATMRuntimeException(sb.toString());
         }
         return outList;
@@ -117,16 +111,13 @@ public class ATMImpl implements ATMService, ATM, Observer {
     }
 
     @Override
-    public void saveToFile( String fileName ) throws IOException {
-        File file = new File( fileName );
-        if ( file.exists() ) {
-            file.delete();
-        }
-        Gson gson = new Gson();
-        String data = gson.toJson( safe );
-        try ( FileWriter writer = new FileWriter( file ) ) {
-            writer.write( data );
+    public void saveToFile(String fileName) throws IOException {
+        JSONSerializer ser = new JSONSerializer();
+        String data = ser.deepSerialize(safe);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write(data);
             writer.flush();
+            logger.warn("[ATM] Configuration successfully saved into {}", fileName);
         }
     }
 
@@ -142,48 +133,50 @@ public class ATMImpl implements ATMService, ATM, Observer {
 
     @Override
     public void insertCell(Cell cell) {
-        safe.insertCell(cell);
+        cell.registerAtATM(this);
+        try {
+            safe.insertCell(cell);
+        } catch (ATMRuntimeException e) {
+            logger.warn("[ATM] {}", e.getMessage());
+        }
     }
 
-
-    public ATMImpl setBufferedReader( BufferedReader bufferedReader ) {
+    public ATMImpl setBufferedReader(BufferedReader bufferedReader) {
         this.bufferedReader = bufferedReader;
         return this;
     }
 
-    public void loadFromFile( String fileName ) throws IOException {
-        File file = new File( fileName );
+    public void loadFromFile(String fileName) throws IOException {
+        File file = new File(fileName);
         if (file.exists()) {
-            safe.setCells( new ArrayList<>() );
+            safe.setCells(new ArrayList<>());
 
-            String data = readIniFile( fileName );
-            Gson gson = new Gson();
-            Safe safe = gson.fromJson( data, Safe.class );
+            String data = readConfigurationFile(fileName);
+            JSONDeserializer<Safe> der = new JSONDeserializer<>();
+
+            Safe safe = der.deserialize(data);
             this.safe = safe;
-
+            this.safe.registerCells(this);
+            logger.warn("[ATM] Configuration was successfully loaded from {}", file.getAbsoluteFile());
         } else {
-            this.safe.setCells( new ArrayList<>() );
-            for ( Nominal nominal : Nominal.values() ) {
-                this.safe.getCells().add( new CellImpl( UUID.randomUUID().toString(), nominal, 0 , this) );
-            }
+            logger.error("[ATM] Configuration loading failed! File not exists: {}", file.getAbsoluteFile());
+            setInitialCells();
         }
         sortCells();
     }
 
+    private String readConfigurationFile(String fileName) throws IOException {
+        File file = new File(fileName);
 
-    private String readIniFile( String fileName ) throws IOException {
-        File file = new File( fileName );
-
-        if ( bufferedReader == null ) {
-            bufferedReader = new BufferedReader( new FileReader( file ) );
+        if (bufferedReader == null) {
+            bufferedReader = new BufferedReader(new FileReader(file));
         }
         String line;
-        StringBuilder sb = new StringBuilder(  );
-        while ( ( line = bufferedReader.readLine() ) != null ) {
-            sb.append( line );
+        StringBuilder sb = new StringBuilder();
+        while ((line = bufferedReader.readLine()) != null) {
+            sb.append(line);
         }
         return sb.toString();
-
     }
 
     @Override
@@ -202,12 +195,12 @@ public class ATMImpl implements ATMService, ATM, Observer {
             return atm;
         }
 
-        public static ATMImpl buildFromFile( String fileName ) {
+        public static ATMImpl buildFromFile(String fileName) {
             ATMImpl atm = new ATMImpl();
 
             try {
-                atm.loadFromFile( fileName );
-            } catch ( IOException e ) {
+                atm.loadFromFile(fileName);
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             return atm;
@@ -215,17 +208,17 @@ public class ATMImpl implements ATMService, ATM, Observer {
     }
 
     private void setInitialCells() {
-        List<Cell> initialCellList = new ArrayList<>();
-        for (Nominal nominal : Nominal.values()){
-            initialCellList.add(new CellImpl(UUID.randomUUID().toString(),nominal,0,this));
+        this.safe.setCells(new ArrayList<>());
+        for (Nominal nominal : Nominal.values()) {
+            Cell cell = new CellImpl(UUID.randomUUID().toString(), nominal, 0);
+            cell.registerAtATM(this);
+            this.safe.insertCell(cell);
         }
-        safe.setCells(initialCellList);
-
+        sortCells();
+        logger.warn("[ATM] Initial set of blank cells of each nominal was loaded");
     }
 
     private void sortCells() {
-//        Collections.sort( safe.getCells(), (Comparator<Cell>) (o1, o2) -> o2.getNominal().getNominal().compareTo( o1.getNominal().getNominal() ));
         safe.getCells().sort(Comparator.naturalOrder());
-//        balanceables = safe.getCells().stream().collect( Collectors.toList());
-
-    }}
+    }
+}

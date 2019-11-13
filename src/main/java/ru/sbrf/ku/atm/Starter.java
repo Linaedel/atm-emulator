@@ -10,16 +10,17 @@ import java.io.IOException;
 public class Starter {
     private String FILE_NAME;
 
-    public static void main( String args[] ) throws IOException {
+    public static void main(String args[]) throws IOException {
         Starter starter = new Starter();
-        starter.FILE_NAME = args[ 0 ];
+        starter.FILE_NAME = args[0];
         starter.startAtm();
     }
 
-
     private void startAtm() {
-        ATM atm = ATMImpl.ATMImplBuilder.build();
+        ATM atm = ATMImpl.ATMImplBuilder.buildFromFile(FILE_NAME);
         ViewModel atmViewModel = new ViewModelImpl(atm);
+        ((ViewModelImpl) atmViewModel).setConfigurationPath(FILE_NAME);
+
         atmViewModel.startClientInteraction();
     }
 }

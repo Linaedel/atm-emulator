@@ -1,11 +1,12 @@
 package ru.sbrf.ku.atm.cell.impl;
 
-import ru.sbrf.ku.atm.ATMRuntimeException;
+import org.slf4j.Logger;
+import ru.sbrf.ku.atm.ATMLogger;
 import ru.sbrf.ku.atm.Nominal;
 import ru.sbrf.ku.atm.Observer;
 import ru.sbrf.ku.atm.atm.ATM;
-import ru.sbrf.ku.atm.atm.impl.ATMImpl;
 import ru.sbrf.ku.atm.cell.Cell;
+import ru.sbrf.ku.atm.exceptions.ATMRuntimeException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,30 +16,52 @@ public class CellImpl implements Cell, Comparable<Cell> {
     private final String id;
     private final Nominal nominal;
     private Integer count;
-    private List<Observer> observers;
+    private transient List<Observer> observers;
+    private transient Logger logger = ATMLogger.getLogger();
 
-    public CellImpl( String id, Nominal cellNominal, Integer cellCount, ATMImpl atm ) {
+    public CellImpl() {
+        this.id = null;
+        this.nominal = null;
+        this.count = null;
+        observers = new ArrayList<>();
+    }
+
+    public CellImpl(String id, Nominal cellNominal, Integer cellCount) {
         this.id = id;
         this.nominal = cellNominal;
         this.count = cellCount;
         observers = new ArrayList<>();
+    }
+
+    public void registerAtATM(ATM atm) {
         observers.add(atm);
         notifyAllObservers();
     }
 
+    public static Integer getMaxCapacity() {
+        return MAX_CAPACITY;
+    }
+
+    public void setCount(Integer count) {
+        this.count = count;
+    }
+
     @Override
-    public void put( Integer count ) {
-        if (this.count + count > MAX_CAPACITY){
-            throw new ATMRuntimeException("Cell is full");
+    public void put(Integer count) {
+        if (this.count + count > MAX_CAPACITY) {
+            throw new ATMRuntimeException("Cell [ID: " + id + "] is full");
         }
         this.count += count;
+        logger.debug("[CELL] Successfully put {} of {} nominal to cell [ID: {}]", count, nominal.getNominal(), id);
         notifyAllObservers();
     }
 
     @Override
-    public Integer get( Integer count ) {
-        Integer toReturn = ( this.count >= count ) ? count : this.count;
+    public Integer get(Integer count) {
+        Logger logger = ATMLogger.getLogger();
+        Integer toReturn = (this.count >= count) ? count : this.count;
         this.count -= toReturn;
+        logger.debug("[CELL] Successfully taken {} of {} nominal from cell [ID: {}]", count, nominal.getNominal(), id);
         notifyAllObservers();
         return toReturn;
     }
@@ -59,18 +82,17 @@ public class CellImpl implements Cell, Comparable<Cell> {
 
     @Override
     public Integer getBalance() {
-        return nominal.getNominal()*count;
+        return nominal.getNominal() * count;
     }
 
     public void notifyAllObservers() {
-        for (Observer observer : observers){
+        for (Observer observer : observers) {
             observer.updateBalance();
         }
     }
 
-
     @Override
     public int compareTo(Cell o) {
-        return this.getNominal().getNominal().compareTo( o.getNominal().getNominal());
+        return this.getNominal().getNominal().compareTo(o.getNominal().getNominal());
     }
 }

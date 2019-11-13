@@ -1,4 +1,4 @@
-package ru.sbrf.ku.atm;
+package ru.sbrf.ku.atm.exceptions;
 
 public class ATMRuntimeException extends RuntimeException {
     public ATMRuntimeException() {
